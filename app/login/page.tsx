@@ -40,9 +40,10 @@ export default function AdminLoginPage() {
       console.log("Available buckets:", buckets);
       const allFiles: { name: string; url: string }[] = [];
       for (const bucket of buckets) {
-        const { data: files, error: filesError } = await supabase.storage.from(bucket.name).list("");
-        if (!filesError && files && files.length > 0) {
-          for (const file of files) {
+        const { data: filesData, error: filesError } = await supabase.storage.from(bucket.name).list("");
+        const filesArr = Array.isArray(filesData) ? filesData : [];
+        if (!filesError && filesArr.length > 0) {
+          for (const file of filesArr) {
             const { data } = supabase.storage.from(bucket.name).getPublicUrl(file.name);
             allFiles.push({ name: file.name, url: data?.publicUrl || "" });
           }
