@@ -20,8 +20,8 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("")
   const [attempts, setAttempts] = useState(0)
   const [success, setSuccess] = useState(false)
-  const [images, setImages] = useState<string[]>([])
-  const [loadingImages, setLoadingImages] = useState(false)
+  const [files, setFiles] = useState<{ name: string; url: string }[]>([])
+  const [loadingFiles, setLoadingFiles] = useState(false)
 
   const { signIn, user } = useAuth()
   const router = useRouter()
@@ -30,75 +30,38 @@ export default function AdminLoginPage() {
   const isBlocked = attempts >= maxAttempts
 
   const fetchImages = async () => {
-    setLoadingImages(true)
+  setLoadingFiles(true)
     try {
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets()
-
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
       if (bucketsError) {
-        console.error("Error fetching buckets:", bucketsError)
-        return
+        console.error("Error fetching buckets:", bucketsError);
+        return;
       }
-
-      console.log("Available buckets:", buckets)
-
-      const bucketNames = ["images", "uploads", "files", "vault", "public"]
-      const imageUrls: string[] = []
-
-      for (const bucketName of bucketNames) {
-        const bucketExists = buckets?.find((bucket) => bucket.name === bucketName)
-        if (bucketExists) {
-          const { data: files, error: filesError } = await supabase.storage.from(bucketName).list("", { limit: 10 })
-
-          if (!filesError && files && files.length > 0) {
-            console.log(`Found files in ${bucketName}:`, files)
-
-            const imageFiles = files.filter((file) => file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))
-
-            for (const file of imageFiles) {
-              const { data } = supabase.storage.from(bucketName).getPublicUrl(file.name)
-
-              if (data?.publicUrl) {
-                imageUrls.push(data.publicUrl)
-              }
-            }
-            break
-          }
-        }
-      }
-
-      if (imageUrls.length === 0 && buckets && buckets.length > 0) {
-        const firstBucket = buckets[0].name
-        const { data: files, error: filesError } = await supabase.storage.from(firstBucket).list("", { limit: 10 })
-
+      console.log("Available buckets:", buckets);
+      const allFiles: { name: string; url: string }[] = [];
+      for (const bucket of buckets) {
+        const { data: files, error: filesError } = await supabase.storage.from(bucket.name).list("");
         if (!filesError && files && files.length > 0) {
-          console.log(`Found files in ${firstBucket}:`, files)
-
-          const imageFiles = files.filter((file) => file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))
-
-          for (const file of imageFiles) {
-            const { data } = supabase.storage.from(firstBucket).getPublicUrl(file.name)
-
-            if (data?.publicUrl) {
-              imageUrls.push(data.publicUrl)
-            }
+          for (const file of files) {
+            const { data } = supabase.storage.from(bucket.name).getPublicUrl(file.name);
+            allFiles.push({ name: file.name, url: data?.publicUrl || "" });
           }
         }
       }
-
-      setImages(imageUrls)
-      console.log("Loaded images:", imageUrls)
+      setFiles(allFiles);
+      console.log("Loaded files:", allFiles);
     } catch (err) {
-      console.error("Error fetching images:", err)
+      console.error("Error fetching files:", err);
     } finally {
-      setLoadingImages(false)
+      setLoadingFiles(false);
     }
   }
 
   useEffect(() => {
     if (user) {
-      console.log("Admin authenticated successfully")
-      setSuccess(true)
-      fetchImages()
+      console.log("Admin authenticated successfully");
+      setSuccess(true);
+      fetchImages();
     }
   }, [user, router])
 
@@ -140,13 +103,12 @@ export default function AdminLoginPage() {
           <CardContent className="pt-6">
             <div className="text-center space-y-6">
               <div className="relative">
-                <CheckCircle className="h-16 w-16 mx-auto text-emerald-500 animate-in zoom-in-0 duration-700 delay-200" />
+                <CheckCircle className="h-16 w-16 mx-auto text-emerald-500 animate-in zoom-in-0 duration-700" />
                 <div className="absolute inset-0 h-16 w-16 mx-auto rounded-full bg-emerald-500/20 animate-ping" />
               </div>
               <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500 delay-300">
                 <h2 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Admin Panel Active</h2>
                 <p className="text-muted-foreground">Welcome back, Administrator</p>
-
                 <div className="grid gap-3 mt-6">
                   <Card className="p-4 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800">
                     <div className="flex items-center gap-3">
@@ -157,7 +119,6 @@ export default function AdminLoginPage() {
                       </div>
                     </div>
                   </Card>
-
                   <Card className="p-4 bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800">
                     <div className="flex items-center gap-3">
                       <Shield className="h-5 w-5 text-slate-600" />
@@ -167,56 +128,49 @@ export default function AdminLoginPage() {
                       </div>
                     </div>
                   </Card>
-
                   <Card className="p-4 bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <Database className="h-5 w-5 text-blue-600" />
                         <div className="text-left">
-                          <p className="font-medium text-blue-700 dark:text-blue-300">Database Images</p>
+                          <p className="font-medium text-blue-700 dark:text-blue-300">Database Files</p>
                           <p className="text-sm text-blue-600 dark:text-blue-400">
-                            {loadingImages ? "Loading..." : `${images.length} images found`}
+                            {loadingFiles ? "Loading..." : `${files.length} files found`}
                           </p>
                         </div>
                       </div>
-
-                      {loadingImages ? (
+                      {loadingFiles ? (
                         <div className="flex justify-center py-4">
                           <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
                         </div>
-                      ) : images.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-2 mt-3">
-                          {images.slice(0, 4).map((imageUrl, index) => (
-                            <div key={index} className="relative group">
-                              <img
-                                src={imageUrl || "/placeholder.svg"}
-                                alt={`Database image ${index + 1}`}
-                                className="w-full h-24 object-cover rounded-lg border border-blue-200 dark:border-blue-700 transition-transform duration-200 group-hover:scale-105"
-                                onError={(e) => {
-                                  console.error("Image failed to load:", imageUrl)
-                                  e.currentTarget.style.display = "none"
-                                }}
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors duration-200" />
+                      ) : files.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-2 mt-3">
+                          {files.slice(0, 10).map((file, index) => (
+                            <div key={index} className="flex items-center gap-2 p-2 border rounded-lg bg-white dark:bg-slate-900">
+                              <span className="font-mono text-xs flex-1 truncate">{file.name}</span>
+                              {file.url ? (
+                                <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">Open</a>
+                              ) : (
+                                <span className="text-gray-400 text-xs">No public URL</span>
+                              )}
                             </div>
                           ))}
                         </div>
                       ) : (
                         <div className="flex items-center justify-center py-4 text-blue-600 dark:text-blue-400">
-                          <ImageIcon className="h-5 w-5 mr-2" />
-                          <span className="text-sm">No images found in storage</span>
+                          <Database className="h-5 w-5 mr-2" />
+                          <span className="text-sm">No files found in storage</span>
                         </div>
                       )}
                     </div>
                   </Card>
                 </div>
-
                 <Button
                   onClick={() => {
-                    setSuccess(false)
-                    setEmail("")
-                    setPassword("")
-                    setImages([])
+                    setSuccess(false);
+                    setEmail("");
+                    setPassword("");
+                    setFiles([]);
                   }}
                   variant="outline"
                   className="w-full mt-4"
@@ -228,7 +182,7 @@ export default function AdminLoginPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
