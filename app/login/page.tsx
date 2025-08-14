@@ -20,7 +20,7 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("")
   const [attempts, setAttempts] = useState(0)
   const [success, setSuccess] = useState(false)
-  const [files, setFiles] = useState<{ name: string; url: string }[]>([])
+  const [files, setFiles] = useState<{ name: string; url: string; bucket: string }[]>([])
   const [loadingFiles, setLoadingFiles] = useState(false)
 
   const { signIn, user } = useAuth()
@@ -30,22 +30,25 @@ export default function AdminLoginPage() {
   const isBlocked = attempts >= maxAttempts
 
   const fetchImages = async () => {
-  setLoadingFiles(true)
+    setLoadingFiles(true)
     try {
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      if (bucketsError) {
-        console.error("Error fetching buckets:", bucketsError);
-        return;
-      }
-      console.log("Available buckets:", buckets);
-      const allFiles: { name: string; url: string }[] = [];
-      for (const bucket of buckets) {
-        const { data: filesData, error: filesError } = await supabase.storage.from(bucket.name).list("");
+      // Explicitly list your buckets
+      const bucketNames = ["files", "photos", "pdf"];
+      const allFiles: { name: string; url: string; bucket: string }[] = [];
+      for (const bucketName of bucketNames) {
+        const { data: filesData, error: filesError } = await supabase.storage.from(bucketName).list("");
         const filesArr = Array.isArray(filesData) ? filesData : [];
         if (!filesError && filesArr.length > 0) {
           for (const file of filesArr) {
-            const { data } = supabase.storage.from(bucket.name).getPublicUrl(file.name);
-            allFiles.push({ name: file.name, url: data?.publicUrl || "" });
+            // Try to get a signed URL for download (valid for 1 hour)
+            const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+              .from(bucketName)
+              .createSignedUrl(file.name, 3600);
+            allFiles.push({
+              name: file.name,
+              url: signedUrlData?.signedUrl || "",
+              bucket: bucketName,
+            });
           }
         }
       }
@@ -127,6 +130,7 @@ export default function AdminLoginPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b">
+                    <th className="py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Bucket</th>
                     <th className="py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">File Name</th>
                     <th className="py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Actions</th>
                   </tr>
@@ -134,15 +138,16 @@ export default function AdminLoginPage() {
                 <tbody>
                   {files.map((file, idx) => (
                     <tr key={idx} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="py-2 px-3 text-gray-800 dark:text-gray-100 font-mono">{file.bucket}</td>
                       <td className="py-2 px-3 text-gray-800 dark:text-gray-100 font-mono truncate max-w-xs">{file.name}</td>
                       <td className="py-2 px-3">
                         {file.url ? (
-                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mr-4">View</a>
+                          <>
+                            <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mr-4">View</a>
+                            <a href={file.url} download className="text-green-600 hover:underline">Download</a>
+                          </>
                         ) : (
-                          <span className="text-gray-400">No public URL</span>
-                        )}
-                        {file.url && (
-                          <a href={file.url} download className="text-green-600 hover:underline">Download</a>
+                          <span className="text-gray-400">No access</span>
                         )}
                       </td>
                     </tr>
