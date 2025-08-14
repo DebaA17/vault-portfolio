@@ -99,89 +99,64 @@ export default function AdminLoginPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-100 dark:from-emerald-950 dark:to-teal-950 p-4">
-        <Card className="w-full max-w-2xl border-emerald-200 dark:border-emerald-800 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-500">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-6">
-              <div className="relative">
-                <CheckCircle className="h-16 w-16 mx-auto text-emerald-500 animate-in zoom-in-0 duration-700" />
-                <div className="absolute inset-0 h-16 w-16 mx-auto rounded-full bg-emerald-500/20 animate-ping" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-gray-900 dark:to-gray-800 flex flex-col">
+        <header className="w-full px-8 py-6 flex items-center justify-between bg-white dark:bg-gray-900 shadow-md">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Vault Dashboard</h1>
+          <Button
+            variant="outline"
+            className="ml-4"
+            onClick={() => {
+              setSuccess(false);
+              setEmail("");
+              setPassword("");
+              setFiles([]);
+            }}
+          >Sign Out</Button>
+        </header>
+        <main className="flex-1 w-full max-w-4xl mx-auto py-10 px-4">
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-2">Your Files</h2>
+            <p className="text-gray-500 dark:text-gray-400">All files stored in your vault. Click to view or download.</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6">
+            {loadingFiles ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               </div>
-              <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500 delay-300">
-                <h2 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Admin Panel Active</h2>
-                <p className="text-muted-foreground">Welcome back, Administrator</p>
-                <div className="grid gap-3 mt-6">
-                  <Card className="p-4 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800">
-                    <div className="flex items-center gap-3">
-                      <Settings className="h-5 w-5 text-emerald-600" />
-                      <div className="text-left">
-                        <p className="font-medium text-emerald-700 dark:text-emerald-300">System Status</p>
-                        <p className="text-sm text-emerald-600 dark:text-emerald-400">All systems operational</p>
-                      </div>
-                    </div>
-                  </Card>
-                  <Card className="p-4 bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
-                      <Shield className="h-5 w-5 text-slate-600" />
-                      <div className="text-left">
-                        <p className="font-medium text-slate-700 dark:text-slate-300">Security Level</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Maximum protection active</p>
-                      </div>
-                    </div>
-                  </Card>
-                  <Card className="p-4 bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <Database className="h-5 w-5 text-blue-600" />
-                        <div className="text-left">
-                          <p className="font-medium text-blue-700 dark:text-blue-300">Database Files</p>
-                          <p className="text-sm text-blue-600 dark:text-blue-400">
-                            {loadingFiles ? "Loading..." : `${files.length} files found`}
-                          </p>
-                        </div>
-                      </div>
-                      {loadingFiles ? (
-                        <div className="flex justify-center py-4">
-                          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                        </div>
-                      ) : files.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-2 mt-3">
-                          {files.slice(0, 10).map((file, index) => (
-                            <div key={index} className="flex items-center gap-2 p-2 border rounded-lg bg-white dark:bg-slate-900">
-                              <span className="font-mono text-xs flex-1 truncate">{file.name}</span>
-                              {file.url ? (
-                                <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">Open</a>
-                              ) : (
-                                <span className="text-gray-400 text-xs">No public URL</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center py-4 text-blue-600 dark:text-blue-400">
-                          <Database className="h-5 w-5 mr-2" />
-                          <span className="text-sm">No files found in storage</span>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                </div>
-                <Button
-                  onClick={() => {
-                    setSuccess(false);
-                    setEmail("");
-                    setPassword("");
-                    setFiles([]);
-                  }}
-                  variant="outline"
-                  className="w-full mt-4"
-                >
-                  Sign Out
-                </Button>
+            ) : files.length > 0 ? (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b">
+                    <th className="py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">File Name</th>
+                    <th className="py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {files.map((file, idx) => (
+                    <tr key={idx} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="py-2 px-3 text-gray-800 dark:text-gray-100 font-mono truncate max-w-xs">{file.name}</td>
+                      <td className="py-2 px-3">
+                        {file.url ? (
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mr-4">View</a>
+                        ) : (
+                          <span className="text-gray-400">No public URL</span>
+                        )}
+                        {file.url && (
+                          <a href={file.url} download className="text-green-600 hover:underline">Download</a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="flex flex-col items-center py-12">
+                <Database className="h-10 w-10 text-gray-400 mb-4" />
+                <span className="text-lg text-gray-500">No files found in your vault.</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </main>
       </div>
     );
   }
